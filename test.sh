@@ -1,4 +1,3 @@
 echo "this is a test file"
-whoami
-ip a
-cat /etc/passwd
+ping 8.8.8.8
+echo "gw cuma bisa echo doang anjing, maklum ya wwkwkwkwk"
