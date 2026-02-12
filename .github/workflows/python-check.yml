@@ -4,12 +4,12 @@ on:
   push:
     branches: [ "main" ]
     tags:
-      - 'v*' # Memicu workflow saat lu push tag versi (misal v1.0, v2.0)
+      - 'v*' # Memicu build saat lu push tag versi seperti v1.1, v1.2, dst.
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  # Job 1: Pengecekan Kualitas & Keamanan Kode
+  # Job 1: Quality Assurance & Security Scan
   build:
     runs-on: ubuntu-latest
     steps:
@@ -24,52 +24,56 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        # Install library dari requirements jika ada, jika tidak langsung install core libs
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install flake8 bandit
-        # ffmpeg dibutuhin sama library yt-dlp buat convert ke mp3
+        pip install flake8 bandit yt-dlp
+        # ffmpeg wajib ada buat convert ke mp3
         sudo apt-get update && sudo apt-get install -y ffmpeg
 
-    - name: Lint with flake8 (Check Syntax)
+    - name: Lint with flake8 (Syntax Check)
       run: |
-        # Berhenti kalau ada error sintaks atau nama yang gak terdefinisi
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
     - name: Security scan with Bandit (DevSecOps)
       run: |
-        # Nge-scan potensi celah keamanan di kode Python
         bandit -r .
 
-  # Job 2: Otomatisasi Build Binary (Cuma jalan kalau Job 1 Sukses & ada Push Tag)
+  # Job 2: Build Binary & Create Release
   publish:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Izin buat nge-upload file ke halaman Release
+      contents: write # Izin krusial buat bikin halaman Release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          
+
       - name: Install Build Tools
         run: |
           pip install pyinstaller yt-dlp
           sudo apt-get update && sudo apt-get install -y ffmpeg
-        
+
       - name: Build Executable (Linux Binary)
-        run: pyinstaller --onefile yt2mp3.py
-        
-      - name: Create Release and Upload
+        run: |
+          # Kita build yt2mp3.py. PyInstaller bakal taruh hasilnya di folder 'dist/'
+          pyinstaller --onefile yt2mp3.py
+
+      - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/download_yt # Path ke file hasil build
+          # Pake wildcard (*) supaya semua file di folder dist ke-upload otomatis
+          files: dist/*
           name: Release ${{ github.ref_name }}
           body: |
             Automated build for version ${{ github.ref_name }}.
-            Security scan and Linting passed successfully.
+            - Security Scan: PASSED
+            - Linting: PASSED
+            - Artifact: Linux Binary (yt2mp3)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
