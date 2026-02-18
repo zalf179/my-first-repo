@@ -1,0 +1,46 @@
+name: Python Quality Check
+
+on:
+  push:
+    branches: [ feature1 ]
+  pull_request:
+    branches: [ feature1 ]
+
+jobs:
+  devops-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout kode
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 bandit pytest safety
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Linting dengan Flake8
+      run: |
+        # Berhenti jika ada error sintaks, selebihnya cuma peringatan
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Security Check dengan Bandit
+      run: |
+        # Cek celah keamanan di kode kamu (khususnya freakycat.py)
+        bandit -r freakycat.py
+
+    - name: Dependency Security Check dengan Safety
+      run: |
+        # Cek apakah library di requirements.txt punya celah keamanan
+        safety check
+
+    - name: Run Tests dengan Pytest
+      run: |
+        # Menjalankan unit test (kalau kamu sudah buat file test-nya)
+        pytest
