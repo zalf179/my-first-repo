@@ -7,7 +7,8 @@ from io import BytesIO
 GIF_URL = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnJuOWRjOXljM2x0dXp3bG01aWxtYTZ6c3l2cWhyZGg0cXRpaGdtZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/vPzbDN4rBxuvtpSpzF/giphy.gif"
 
 # Ambil GIF dari internet
-resp = requests.get(GIF_URL)
+# timeout=5 artinya kalau 5 detik gak ada respon, program bakal stop/error
+resp = requests.get(GIF_URL, timeout=5)
 gif_bytes = BytesIO(resp.content)
 
 # Buka GIF pakai Pillow
